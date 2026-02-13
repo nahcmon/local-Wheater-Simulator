@@ -62,7 +62,7 @@ def fetch_hourly_weather(
     if api_timezone:
         # Open-Meteo returns local clock times for timezone="auto"; localize them so
         # "now" is computed in the same timezone regardless of the host machine timezone.
-        timestamps = timestamps.dt.tz_localize(api_timezone)
+        timestamps = timestamps.tz_localize(api_timezone)
         now = pd.Timestamp.now(tz=api_timezone)
     else:
         now = pd.Timestamp.now()
