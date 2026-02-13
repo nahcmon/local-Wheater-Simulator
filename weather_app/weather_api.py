@@ -40,11 +40,12 @@ def fetch_hourly_weather(
     past_days: int = 10,
     forecast_hours: int = 48,
 ) -> pd.DataFrame:
+    past_hours = past_days * 24
     params = {
         "latitude": lat,
         "longitude": lon,
         "hourly": "temperature_2m,relative_humidity_2m,wind_speed_10m",
-        "past_days": past_days,
+        "past_hours": past_hours,
         "forecast_hours": forecast_hours,
         "timezone": "auto",
     }
