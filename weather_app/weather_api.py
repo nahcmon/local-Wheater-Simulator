@@ -57,15 +57,24 @@ def fetch_hourly_weather(
     if not hourly:
         raise WeatherAPIError("Hourly data missing from Open-Meteo response")
 
+    api_timezone = payload.get("timezone")
+    timestamps = pd.to_datetime(hourly["time"])
+    if api_timezone:
+        # Open-Meteo returns local clock times for timezone="auto"; localize them so
+        # "now" is computed in the same timezone regardless of the host machine timezone.
+        timestamps = timestamps.dt.tz_localize(api_timezone)
+        now = pd.Timestamp.now(tz=api_timezone)
+    else:
+        now = pd.Timestamp.now()
+
     df = pd.DataFrame(
         {
-            "timestamp": pd.to_datetime(hourly["time"]),
+            "timestamp": timestamps,
             "temperature_2m": hourly["temperature_2m"],
             "relative_humidity_2m": hourly["relative_humidity_2m"],
             "wind_speed_10m": hourly["wind_speed_10m"],
         }
     ).dropna()
 
-    now = pd.Timestamp.now(tz=df["timestamp"].dt.tz)
     df["is_historical"] = df["timestamp"] <= now
     return df.reset_index(drop=True)
