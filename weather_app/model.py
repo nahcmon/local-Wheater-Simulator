@@ -20,7 +20,7 @@ class ForecastModel:
             return
 
         device_map = "cuda" if torch.cuda.is_available() else "cpu"
-        torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+        torch_dtype = torch.bfloat16 if torch.cuda.is_available() else torch.float32
         try:
             self._pipeline = ChronosPipeline.from_pretrained(
                 self.model_id,
@@ -33,9 +33,9 @@ class ForecastModel:
     def predict_quantiles(
         self,
         context_values: np.ndarray,
-        prediction_length: int = 24,
+        prediction_length: int,
         quantiles: tuple[float, float, float] = (0.1, 0.5, 0.9),
-        num_samples: int = 100,
+        num_samples: int = 120,
     ) -> dict[float, np.ndarray]:
         self.load()
 
@@ -47,8 +47,9 @@ class ForecastModel:
             seasonal = context_values[-24:]
             repeated = np.resize(seasonal, prediction_length)
             forecasts = np.tile(repeated, (num_samples, 1))
-            noise = np.random.normal(0.0, 0.8, size=forecasts.shape)
-            forecasts = 0.7 * forecasts + 0.3 * base + noise
+            noise = np.random.normal(0.0, 0.9, size=forecasts.shape)
+            trend = np.linspace(0.0, 0.2, prediction_length)
+            forecasts = 0.65 * forecasts + 0.35 * base + noise + trend
             return {q: np.quantile(forecasts, q, axis=0) for q in quantiles}
 
         context = torch.tensor(context_values, dtype=torch.float32)

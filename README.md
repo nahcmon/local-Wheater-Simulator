@@ -1,62 +1,56 @@
 # Local Weather Forecaster (Windows + CUDA)
 
-This project builds a **local AI weather-forecast app** optimized for a 12GB RTX 3080 Ti environment.
+A practical, quality-first weather forecasting app for a **single RTX 3080 Ti 12GB** PC running Windows + CUDA.
 
-## Model research (quality-first, single-GPU reality)
+## Model research (quality vs practical deployment)
 
-### Candidates reviewed
+For pure global benchmark leadership, models such as GraphCast and Pangu-Weather are excellent, but they are usually more complex to deploy and operate on consumer Windows setups.
 
-1. **GraphCast (DeepMind/ECMWF)**
-   - Quality: state-of-the-art global medium-range skill in many benchmarks.
-   - Constraint: inference/training stack is not straightforward for consumer Windows CUDA workflows; operational use is usually TPU/large infra centric.
-
-2. **Pangu-Weather (Huawei)**
-   - Quality: excellent global NWP benchmark performance.
-   - Constraint: model variants and runtime stacks can be heavy for a straightforward 12GB desktop deployment, especially with full-resolution workflows.
-
-3. **FourCastNet / FourCastNetV2 (NVIDIA/ECMWF ecosystem)**
-   - Quality: strong global skill and fast autoregressive inference relative to classical NWP.
-   - Constraint: practical deployment at high global resolution can still be memory and engineering intensive.
-
-4. **Chronos-Bolt (Amazon) for local point forecasting from real-time observations**
-   - Quality: very strong zero-shot forecasting quality across many real-world time-series tasks.
-   - Advantage: easy local deployment from Hugging Face with PyTorch/CUDA, excellent fit for a 12GB 3080 Ti when forecasting **location-specific weather variables** (e.g., temperature, humidity, wind).
-
-## Final model choice for this app
-
-For the explicit constraint "best practical quality on a single 12GB 3080 Ti with easy Windows deployment", this app uses:
+For this project goal (single desktop GPU + robust local inference + real-time live input), the best practical choice is:
 
 - **`amazon/chronos-bolt-small`**
 
-Why:
-- Delivers high-quality probabilistic forecasts for point time series.
-- Fits comfortably in 12GB VRAM with room for UI/runtime overhead.
-- Simple and robust deployment path on Windows CUDA via PyTorch.
-- Enables real-time forecasting by ingesting live weather observations.
+Why this is the best fit here:
+- Strong zero-shot probabilistic forecasting quality for time series.
+- Runs comfortably on 12GB VRAM.
+- Straightforward PyTorch + CUDA workflow.
+- Works directly on live hourly weather observations to generate relevant local forecasts.
 
----
+## App behavior
 
-## What the app does
+1. User enters city.
+2. App geocodes location using Open-Meteo.
+3. App fetches recent hourly weather + near-term future hours.
+4. Historical segment feeds Chronos-Bolt locally.
+5. App predicts future quantiles (P10/P50/P90) and shows:
+   - nice forecast chart with uncertainty band,
+   - comparison against Open-Meteo baseline,
+   - tabular output.
 
-- Accepts a city name (or lat/lon).
-- Pulls **live + recent hourly weather observations** from Open-Meteo.
-- Runs local inference with Chronos-Bolt to forecast next 24 hours.
-- Displays:
-  - historical context,
-  - median forecast,
-  - uncertainty interval (10th–90th percentile),
-  - data table for practical usage.
+## Windows installation
 
-## Windows quick start
+### One-time setup
+Run:
 
-1. Run one-time setup:
-   - `setup.bat`
-2. Start app:
-   - `start.bat`
-3. Open browser at the Streamlit URL shown in terminal.
+```bat
+setup.bat
+```
 
-## Notes
+This does all setup automatically:
+- creates `.venv`,
+- installs CUDA PyTorch (`cu121`),
+- installs app dependencies,
+- downloads Chronos-Bolt weights.
 
-- Setup will automatically use CUDA-enabled PyTorch when possible.
-- If CUDA is unavailable, the app falls back to CPU.
-- Data source: Open-Meteo public APIs (no key required).
+### Start app
+Run:
+
+```bat
+start.bat
+```
+
+Then open the URL printed by Streamlit (typically `http://localhost:8501`).
+
+## Data source
+
+- Open-Meteo APIs (free, no key required).

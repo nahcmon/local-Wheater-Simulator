@@ -11,4 +11,5 @@ if not exist .venv\Scripts\activate (
 call .venv\Scripts\activate
 if errorlevel 1 exit /b 1
 
-streamlit run app.py
+python -c "import torch; print('CUDA available:', torch.cuda.is_available())"
+streamlit run app.py --server.headless false

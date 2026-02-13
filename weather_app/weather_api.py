@@ -1,7 +1,9 @@
 from __future__ import annotations
 
-import requests
+from dataclasses import dataclass
+
 import pandas as pd
+import requests
 
 GEOCODE_URL = "https://geocoding-api.open-meteo.com/v1/search"
 FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
@@ -11,7 +13,14 @@ class WeatherAPIError(RuntimeError):
     pass
 
 
-def geocode_city(city: str) -> tuple[float, float, str]:
+@dataclass(frozen=True)
+class Location:
+    latitude: float
+    longitude: float
+    label: str
+
+
+def geocode_city(city: str) -> Location:
     params = {"name": city, "count": 1, "language": "en", "format": "json"}
     response = requests.get(GEOCODE_URL, params=params, timeout=20)
     response.raise_for_status()
@@ -21,13 +30,16 @@ def geocode_city(city: str) -> tuple[float, float, str]:
         raise WeatherAPIError(f"City not found: {city}")
 
     top = results[0]
-    label = ", ".join(
-        part for part in [top.get("name"), top.get("admin1"), top.get("country")] if part
-    )
-    return float(top["latitude"]), float(top["longitude"]), label
+    label = ", ".join(part for part in [top.get("name"), top.get("admin1"), top.get("country")] if part)
+    return Location(latitude=float(top["latitude"]), longitude=float(top["longitude"]), label=label)
 
 
-def fetch_hourly_temperature(lat: float, lon: float, past_days: int = 7, forecast_hours: int = 24) -> pd.DataFrame:
+def fetch_hourly_weather(
+    lat: float,
+    lon: float,
+    past_days: int = 10,
+    forecast_hours: int = 48,
+) -> pd.DataFrame:
     params = {
         "latitude": lat,
         "longitude": lon,
@@ -51,5 +63,8 @@ def fetch_hourly_temperature(lat: float, lon: float, past_days: int = 7, forecas
             "relative_humidity_2m": hourly["relative_humidity_2m"],
             "wind_speed_10m": hourly["wind_speed_10m"],
         }
-    )
-    return df.dropna().reset_index(drop=True)
+    ).dropna()
+
+    now = pd.Timestamp.now(tz=df["timestamp"].dt.tz)
+    df["is_historical"] = df["timestamp"] <= now
+    return df.reset_index(drop=True)
